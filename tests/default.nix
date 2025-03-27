@@ -1,6 +1,6 @@
 {
   pkgs,
-  libvirt-src
+  libvirt-src,
 }:
 let
   virsh_ch_xml = ''
@@ -22,7 +22,7 @@ let
       <devices>
         <emulator>cloud-hypervisor</emulator>
         <disk type='file' device='disk'>
-          <source file='/etc/cirros.img'/>
+          <source file='/var/lib/libvirt/storage-pools/nfs-share/cirros.img'/>
           <target dev='vda' bus='virtio'/>
         </disk>
         <serial type='pty'>
@@ -74,15 +74,19 @@ let
     {
       virtualisation.libvirtd = {
         enable = true;
-        package = pkgs.libvirt.overrideAttrs (old: { src = libvirt-src; });
+        sshProxy = false;
+        package = pkgs.libvirt.overrideAttrs (old: {
+          src = libvirt-src;
+        });
       };
 
-      # systemd.services.virtchd.wantedBy = [ "multi-user.target" ];
+      systemd.services.virtchd.wantedBy = [ "multi-user.target" ];
+      systemd.sockets.virtstoraged.wantedBy = [ "sockets.target" ];
 
-      systemd.sockets.libvirtd-tcp = {
-        enable = true;
-        wantedBy = [ "sockets.target" ];
-      };
+      # systemd.sockets.libvirtd-tcp = {
+      #   enable = true;
+      #   wantedBy = [ "sockets.target" ];
+      # };
 
       virtualisation.libvirtd.extraConfig = ''
         listen_tls = 0
@@ -98,6 +102,16 @@ let
       };
 
       services.getty.autologinUser = "root";
+
+      services.openssh = {
+        enable = true;
+        settings = {
+          PermitRootLogin = "yes";
+          PermitEmptyPasswords = "yes";
+        };
+      };
+
+      security.pam.services.sshd.allowNullPassword = true;
 
       environment.systemPackages = [
         pkgs.cloud-hypervisor
@@ -238,23 +252,28 @@ pkgs.nixosTest {
       start_all()
       controllerVM.wait_for_unit("multi-user.target")
 
-      # controllerVM.succeed("virsh -c \"ch:///session\" create /etc/cirros-chv.xml")
-
       controllerVM.succeed("cp /etc/cirros.img /nfs-root/")
       controllerVM.succeed("chmod 0666 /nfs-root/cirros.img")
 
       controllerVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
-      controllerVM.succeed("virsh pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      controllerVM.succeed("virsh pool-start nfs-share")
+      controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
       computeVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
-      computeVM.succeed("virsh pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      computeVM.succeed("virsh pool-start nfs-share")
+      computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
-      controllerVM.succeed("virsh -c \"qemu+tcp://controllerVM/system\" create /etc/cirros-qemu.xml")
+      controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
 
-      controllerVM.succeed("virsh migrate --domain cirros --desturi qemu+tcp://computeVM/system --live --verbose")
+      # Add to list of known hosts so Libvirt can connect freely via ssh afterwards
+      controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
 
-      computeVM.succeed("virsh dumpxml cirros")
+      controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+
+      # controllerVM.succeed("virsh -c \"qemu+tcp://controllerVM/system\" create /etc/cirros-qemu.xml")
+
+      # controllerVM.succeed("virsh migrate --domain cirros --desturi qemu+tcp://computeVM/system --live --verbose")
+
+      # computeVM.succeed("virsh dumpxml cirros")
     '';
 }
