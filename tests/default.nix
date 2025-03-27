@@ -1,5 +1,6 @@
 {
   pkgs,
+  libvirt-src
 }:
 let
   virsh_ch_xml = ''
@@ -71,7 +72,10 @@ let
   common =
     { ... }:
     {
-      virtualisation.libvirtd.enable = true;
+      virtualisation.libvirtd = {
+        enable = true;
+        package = pkgs.libvirt.overrideAttrs (old: { src = libvirt-src; });
+      };
 
       # systemd.services.virtchd.wantedBy = [ "multi-user.target" ];
 

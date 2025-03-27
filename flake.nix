@@ -3,12 +3,18 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-24.11";
+    # Make sure the submodule from a local libvirt checkout is populated.
+    libvirt-src = {
+      url = "git+file:/home/skober/repos/libvirt?submodules=1";
+      flake = false;
+    };
   };
 
   outputs =
     {
       self,
       nixpkgs,
+      libvirt-src,
       flake-utils,
       ...
     }:
@@ -23,7 +29,7 @@
           packages = with pkgs; [ ];
         };
 
-        tests = pkgs.callPackage ./tests/default.nix {};
+        tests = pkgs.callPackage ./tests/default.nix { inherit libvirt-src; };
       }
     );
 }

@@ -17,6 +17,23 @@
         "type": "indirect"
       }
     },
+    "libvirt-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1733141811,
+        "narHash": "sha256-czo5G+zL4NFkYehTfymgSwk3bGWcrnike2MYPzeQOPg=",
+        "rev": "7e5641bbc048527656e835cf1ee385fb289a0e9f",
+        "revCount": 51389,
+        "submodules": true,
+        "type": "git",
+        "url": "file:/home/skober/repos/libvirt"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "file:/home/skober/repos/libvirt"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1742751704,
@@ -36,6 +53,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "libvirt-src": "libvirt-src",
         "nixpkgs": "nixpkgs"
       }
     },
