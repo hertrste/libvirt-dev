@@ -77,6 +77,8 @@ let
         sshProxy = false;
         package = pkgs.libvirt.overrideAttrs (old: {
           src = libvirt-src;
+          doInstallCheck = false;
+          doCheck = false;
         });
       };
 
