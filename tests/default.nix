@@ -147,6 +147,18 @@ let
                 argument = "${pkgs.writeText "cirros.xml" virsh_qemu_xml}";
               };
             };
+            "/var/log/libvirt/" = {
+              D = {
+                mode = "0755";
+                user = "root";
+              };
+            };
+            "/var/log/libvirt/ch" = {
+              D = {
+                mode = "0755";
+                user = "root";
+              };
+            };
           };
         };
     };
@@ -254,6 +266,12 @@ pkgs.nixosTest {
 
       controllerVM.succeed("cp /etc/cirros.img /nfs-root/")
       controllerVM.succeed("chmod 0666 /nfs-root/cirros.img")
+
+      controllerVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
+      controllerVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
+
+      computeVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
+      computeVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
 
       controllerVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
       controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
