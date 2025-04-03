@@ -20,10 +20,11 @@
     "libvirt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1743588404,
-        "narHash": "sha256-Py7qLJjNCsODSWgjIPel6OrubcMku7lavNhncApCfP0=",
-        "rev": "832d0231fb71c720153f5c65cd6954486e5b23a7",
-        "revCount": 51541,
+        "lastModified": 1743680362,
+        "narHash": "sha256-o72kjNn5Nz0WPakROTpkpHoXGaRs8qYku1vHQKGcUHI=",
+        "ref": "refs/heads/ch-migrate-v11.0.0",
+        "rev": "ad23137301362c863022977ad2a07a4b1dc3e5cb",
+        "revCount": 51547,
         "submodules": true,
         "type": "git",
         "url": "file:/home/skober/repos/libvirt"
