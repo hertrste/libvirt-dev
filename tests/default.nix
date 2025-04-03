@@ -124,6 +124,7 @@ pkgs.nixosTest {
 
       # Add to list of known hosts so Libvirt can connect freely via ssh afterwards
       controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
+      computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
 
       controllerVM.succeed("sleep 30 && virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
 
