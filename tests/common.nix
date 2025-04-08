@@ -2,8 +2,8 @@
 { pkgs, ... }:
 let
   image = pkgs.fetchurl {
-    url = "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img";
-    hash = "sha256-B+RKc+VMlNmIAoUVQDwe12IFXgG4OnZ+3zwrOH94zgA=";
+    url = "https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-x86_64-disk.img";
+    hash = "sha256-fWNVhSrrbbzRkbzafNdPFTbP5cv4oQSVpyg6g5bkt1s=";
   };
 
   image_raw = pkgs.runCommand "image_raw" { } ''
@@ -112,7 +112,7 @@ in
         # DHCP server settings
         dhcpServerConfig = {
           PoolOffset = 100;
-          PoolSize = 150;
+          PoolSize = 1;
           EmitDNS = true;
           DNS = [
             "8.8.8.8"
@@ -127,7 +127,7 @@ in
         ];
       };
       "10-vnet0" = {
-        matchConfig.Name = "vnet0";
+        matchConfig.Name = "vnet*";
         networkConfig.Bridge = "br0";
       };
     };
@@ -162,6 +162,9 @@ in
     pkgs.cloud-hypervisor
     pkgs.qemu_kvm
     pkgs.bridge-utils
+    pkgs.screen
+    pkgs.jq
+    pkgs.sshpass
   ];
 
   systemd.tmpfiles.settings =
@@ -169,6 +172,8 @@ in
       chv-firmware = pkgs.fetchurl {
         url = "https://github.com/cloud-hypervisor/rust-hypervisor-firmware/releases/download/0.5.0/hypervisor-fw";
         hash = "sha256-Sgoel3No9rFdIZiiFr3t+aNQv15a4H4p5pU3PsFq2Vg=";
+        # url = "https://github.com/cloud-hypervisor/edk2/releases/download/ch-a54f262b09/CLOUDHV.fd";
+        # hash = "sha256-BiTAbF0Hy47+OIBokM5wdsQcCQLy/NWyN28QcDPjIis=";
       };
     in
     {

@@ -15,7 +15,7 @@ pkgs.nixosTest {
 
       virtualisation = {
         cores = 2;
-        memorySize = 2048;
+        memorySize = 3072;
         interfaces = {
           eth1 = {
             vlan = 1;
@@ -64,7 +64,7 @@ pkgs.nixosTest {
 
       virtualisation = {
         cores = 2;
-        memorySize = 2048;
+        memorySize = 3072;
         interfaces = {
           eth1 = {
             vlan = 1;
@@ -100,6 +100,16 @@ pkgs.nixosTest {
   testScript =
     { ... }:
     ''
+      import time
+
+      def wait_for_ssh(machine):
+        for i in range(500):
+          print(f"Wait for ssh {i}/240")
+          status, out = machine.execute("sshpass -p gocbusgo ssh -o StrictHostKeyChecking=no cirros@192.168.1.100")
+          if status == 0:
+            return
+          time.sleep(1)
+
       start_all()
       controllerVM.wait_for_unit("multi-user.target")
 
@@ -113,25 +123,40 @@ pkgs.nixosTest {
       computeVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
 
       controllerVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+      computeVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+
+      controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
+      computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
+
+      ############ CHV Live Migration #######################
+
       controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
-      computeVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
       computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
       controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
 
-      # Add to list of known hosts so Libvirt can connect freely via ssh afterwards
-      controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
-      computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
+      # wait_for_ssh(controllerVM)
 
-      controllerVM.succeed("sleep 30 && virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+
+      ############ QEMU Live Migration ######################
 
       # controllerVM.succeed("virsh -c \"qemu+tcp://controllerVM/system\" create /etc/cirros-qemu.xml")
 
       # controllerVM.succeed("virsh migrate --domain cirros --desturi qemu+tcp://computeVM/system --live --verbose")
 
       # computeVM.succeed("virsh dumpxml cirros")
+
+
+      ############ non-Libvirt CHV Live Migration #######################
+      # computeVM.succeed("screen -m -d cloud-hypervisor -vv --log-file /tmp/log --api-socket /tmp/api")
+      # computeVM.succeed("screen -m -d ch-remote --api-socket=/tmp/api receive-migration tcp:0.0.0.0:41337")
+
+      # controllerVM.succeed("screen -m -d cloud-hypervisor -vv --log-file /tmp/log --net \"tap=tap0,mac=18:ab:a5:f1:f7:56,ip=,mask=\" --kernel /etc/hypervisor-fw --disk path=/etc/cirros.img --cpus boot=1 --memory size=256M --serial file=/tmp/serial --api-socket=/tmp/api")
+      # controllerVM.succeed("sleep 20")
+      # controllerVM.succeed("ch-remote --api-socket=/tmp/api send-migration  tcp:computeVM:41337")
     '';
 }
