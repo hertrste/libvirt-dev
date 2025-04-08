@@ -11,6 +11,7 @@ let
   '';
     # Network interface definition for later usage:
     # <interface type='ethernet'>
+    #   <mac address='52:54:00:e5:b8:ef'/>
     #   <target dev='vnet0'/>
     #   <model type='virtio'/>
     #   <driver queues='1'/>
@@ -38,6 +39,7 @@ let
           <target dev='vda' bus='virtio'/>
         </disk>
         <interface type='ethernet'>
+          <mac address='52:54:00:e5:b8:ef'/>
           <target dev='vnet0'/>
           <model type='virtio'/>
           <driver queues='1'/>
@@ -108,22 +110,30 @@ in
     networks = {
       # Bridge interface configuration
       "10-br0" = {
+        enable = true;
         matchConfig.Name = "br0";
         networkConfig = {
           Description = "Main Bridge";
-          DHCPServer = "yes"; # Enable DHCP server on this interface
+          DHCPServer = "yes";
         };
+
+        dhcpServerStaticLeases = [
+          {
+            Address = "192.168.1.2";
+            MACAddress = "52:54:00:e5:b8:ef";
+          }
+        ];
 
         # DHCP server settings
         dhcpServerConfig = {
-          PoolOffset = 100;
-          PoolSize = 150;
-          EmitDNS = true;
-          DNS = [
-            "8.8.8.8"
-            "8.8.4.4"
-          ]; # DNS servers to offer
-          EmitRouter = true;
+          PoolOffset = 2;
+          PoolSize = 1;
+          EmitDNS = false;
+          # DNS = [
+          #   "8.8.8.8"
+          #   "8.8.4.4"
+          # ]; # DNS servers to offer
+          EmitRouter = false;
         };
 
         # Static IP configuration for the bridge itself
