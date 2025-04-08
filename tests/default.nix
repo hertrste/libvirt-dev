@@ -15,7 +15,7 @@ pkgs.nixosTest {
 
       virtualisation = {
         cores = 2;
-        memorySize = 3072;
+        memorySize = 2048;
         interfaces = {
           eth1 = {
             vlan = 1;
@@ -64,7 +64,7 @@ pkgs.nixosTest {
 
       virtualisation = {
         cores = 2;
-        memorySize = 3072;
+        memorySize = 2048;
         interfaces = {
           eth1 = {
             vlan = 1;
@@ -140,7 +140,7 @@ pkgs.nixosTest {
 
       # wait_for_ssh(controllerVM)
 
-      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+      # controllerVM.succeed("sleep 30 && virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
 
       ############ QEMU Live Migration ######################
 

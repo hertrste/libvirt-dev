@@ -2,8 +2,8 @@
 { pkgs, ... }:
 let
   image = pkgs.fetchurl {
-    url = "https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-x86_64-disk.img";
-    hash = "sha256-fWNVhSrrbbzRkbzafNdPFTbP5cv4oQSVpyg6g5bkt1s=";
+    url = "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img";
+    hash = "sha256-B+RKc+VMlNmIAoUVQDwe12IFXgG4OnZ+3zwrOH94zgA=";
   };
 
   image_raw = pkgs.runCommand "image_raw" { } ''
@@ -37,6 +37,11 @@ let
           <source file='/var/lib/libvirt/storage-pools/nfs-share/cirros.img'/>
           <target dev='vda' bus='virtio'/>
         </disk>
+        <interface type='ethernet'>
+          <target dev='vnet0'/>
+          <model type='virtio'/>
+          <driver queues='1'/>
+        </interface>
         <serial type='pty'>
           <source path='/dev/pts/2'/>
           <target port='0'/>
@@ -112,7 +117,7 @@ in
         # DHCP server settings
         dhcpServerConfig = {
           PoolOffset = 100;
-          PoolSize = 1;
+          PoolSize = 150;
           EmitDNS = true;
           DNS = [
             "8.8.8.8"
@@ -162,8 +167,8 @@ in
     pkgs.cloud-hypervisor
     pkgs.qemu_kvm
     pkgs.bridge-utils
-    pkgs.screen
-    pkgs.jq
+    # pkgs.screen
+    # pkgs.jq
     pkgs.sshpass
   ];
 
