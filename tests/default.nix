@@ -105,10 +105,11 @@ pkgs.nixosTest {
       def wait_for_ssh(machine):
         for i in range(500):
           print(f"Wait for ssh {i}/240")
-          status, out = machine.execute("sshpass -p gocbusgo ssh -o StrictHostKeyChecking=no cirros@192.168.1.100")
+          status, _ = machine.execute("sshpass -p gocubsgo ssh -o StrictHostKeyChecking=no cirros@192.168.1.2 echo hello")
           if status == 0:
-            return
+            return True
           time.sleep(1)
+        return False
 
       start_all()
       controllerVM.wait_for_unit("multi-user.target")
@@ -138,9 +139,11 @@ pkgs.nixosTest {
 
       controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
 
-      # wait_for_ssh(controllerVM)
+      assert wait_for_ssh(controllerVM)
 
-      # controllerVM.succeed("sleep 30 && virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+      controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+
+      assert wait_for_ssh(computeVM)
 
       ############ QEMU Live Migration ######################
 
