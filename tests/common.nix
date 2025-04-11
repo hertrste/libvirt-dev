@@ -203,6 +203,11 @@ in
             argument = "${image_raw}";
           };
         };
+        "/etc/cirros.qcow2" = {
+          "C+" = {
+            argument = "${image}";
+          };
+        };
         "/etc/cirros-chv.xml" = {
           "C+" = {
             argument = "${pkgs.writeText "cirros.xml" virsh_ch_xml}";
