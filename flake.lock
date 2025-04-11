@@ -27,12 +27,12 @@
         "revCount": 51549,
         "submodules": true,
         "type": "git",
-        "url": "file:/home/skober/repos/libvirt"
+        "url": "ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git"
       },
       "original": {
         "submodules": true,
         "type": "git",
-        "url": "file:/home/skober/repos/libvirt"
+        "url": "ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git"
       }
     },
     "nixpkgs": {
