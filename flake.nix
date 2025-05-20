@@ -7,7 +7,7 @@
     # Make sure the submodule from a local libvirt checkout is populated.
     libvirt-src = {
       # url = "git+file:/home/skober/repos/libvirt?submodules=1";
-      url = "git+ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git?submodules=1";
+      url = "git+ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git?ref=ch-migrate-v11.4.0&submodules=1";
       flake = false;
     };
   };

@@ -88,8 +88,11 @@ in
       src = libvirt-src;
       doInstallCheck = false;
       doCheck = false;
+      patches = [ ./0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch ./0002-substitute-zfs-and-zpool-commands.patch ];
     });
   };
+
+  systemd.services.virtstoraged.path = [ pkgs.mount ];
 
   systemd.services.virtchd.wantedBy = [ "multi-user.target" ];
   systemd.sockets.virtstoraged.wantedBy = [ "sockets.target" ];
@@ -180,6 +183,7 @@ in
     # pkgs.screen
     # pkgs.jq
     pkgs.sshpass
+    pkgs.mount
   ];
 
   systemd.tmpfiles.settings =

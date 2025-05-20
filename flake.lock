@@ -20,16 +20,17 @@
     "libvirt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1744030668,
-        "narHash": "sha256-2C7DXNaLpvMVVb/vCvnFKRl6StofCH1FTVDXC28NXi0=",
-        "ref": "refs/heads/ch-migrate-v11.0.0",
-        "rev": "7b2bece18a12ae29f42d210461c4c0ab457fc5ae",
-        "revCount": 51549,
+        "lastModified": 1747728856,
+        "narHash": "sha256-/0kXRr2VyC7Mcwb7baUlz+VRNY0Lwmikk+p3jfLiKMA=",
+        "ref": "ch-migrate-v11.4.0",
+        "rev": "11d84cd1d90e1fb9e704f952a8130196cf3b096e",
+        "revCount": 52308,
         "submodules": true,
         "type": "git",
         "url": "ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git"
       },
       "original": {
+        "ref": "ch-migrate-v11.4.0",
         "submodules": true,
         "type": "git",
         "url": "ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git"
