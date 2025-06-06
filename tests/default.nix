@@ -129,6 +129,18 @@ pkgs.nixosTest {
       controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
       computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
 
+      ############ CHV Logging test  #######################
+
+      # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # controllerVM.succeed("echo \"log_level = 1\" > /var/libvirt/ch/ch.conf")
+
+      # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
+
       ############ CHV Live Migration #######################
 
       controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
