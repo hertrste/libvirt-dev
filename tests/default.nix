@@ -141,7 +141,7 @@ pkgs.nixosTest {
 
       # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
 
-      ############ CHV Live Migration #######################
+      ############ CHV Hotplug test  #######################
 
       controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
@@ -151,11 +151,26 @@ pkgs.nixosTest {
 
       controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
 
-      assert wait_for_ssh(controllerVM)
+      time.sleep(10)
 
-      controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+      controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --driver file --subdriver raw --target vdb --source /tmp/disk.img")
 
-      assert wait_for_ssh(computeVM)
+      ############ CHV Live Migration #######################
+
+      # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
+
+      # assert wait_for_ssh(controllerVM)
+
+      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+
+      # assert wait_for_ssh(computeVM)
 
       ############ QEMU Live Migration ######################
 

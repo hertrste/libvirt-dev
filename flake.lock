@@ -20,20 +20,19 @@
     "libvirt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1747728856,
-        "narHash": "sha256-/0kXRr2VyC7Mcwb7baUlz+VRNY0Lwmikk+p3jfLiKMA=",
-        "ref": "ch-migrate-v11.4.0",
-        "rev": "11d84cd1d90e1fb9e704f952a8130196cf3b096e",
-        "revCount": 52308,
+        "lastModified": 1749543855,
+        "narHash": "sha256-ScDoWu6epe0p6odycHG29LClb5opV3lC6QGC/ooZ96c=",
+        "ref": "refs/heads/gardenlinux-hotplug",
+        "rev": "9e790836020ed5f7de030280d5dfeaeab55693df",
+        "revCount": 52216,
         "submodules": true,
         "type": "git",
-        "url": "ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git"
+        "url": "file:/home/skober/repos/libvirt"
       },
       "original": {
-        "ref": "ch-migrate-v11.4.0",
         "submodules": true,
         "type": "git",
-        "url": "ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git"
+        "url": "file:/home/skober/repos/libvirt"
       }
     },
     "nixpkgs": {
