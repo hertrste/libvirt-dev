@@ -36,6 +36,13 @@ virsh -c ch:///session <cmd>
 virsh -c ch:///session list
 ```
 
+When in the QEMU VM, several file required to spawn VMs via Libvirt are located under `/etc`.
+A Cloud Hypervisor VM can be spawned via:
+
+```shell
+virsh -c ch:///session create /etc/cirros-chv.xml
+```
+
 ## Tests
 
 Test descriptions are in python and located under `tests/default.nix`. For
