@@ -20,19 +20,20 @@
     "libvirt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1749543855,
-        "narHash": "sha256-ScDoWu6epe0p6odycHG29LClb5opV3lC6QGC/ooZ96c=",
-        "ref": "refs/heads/gardenlinux-hotplug",
-        "rev": "9e790836020ed5f7de030280d5dfeaeab55693df",
-        "revCount": 52216,
+        "lastModified": 1748958520,
+        "narHash": "sha256-TttX5Xg8knE4V/pTwaOlcFTsZsCA7+U2a9LDb0HEHD8=",
+        "ref": "gardenlinux",
+        "rev": "595436ebf8f3a86480d2ad7463906f2cb2fabfa5",
+        "revCount": 52213,
         "submodules": true,
         "type": "git",
-        "url": "file:/home/skober/repos/libvirt"
+        "url": "https://github.com/cyberus-technology/libvirt.git"
       },
       "original": {
+        "ref": "gardenlinux",
         "submodules": true,
         "type": "git",
-        "url": "file:/home/skober/repos/libvirt"
+        "url": "https://github.com/cyberus-technology/libvirt.git"
       }
     },
     "nixpkgs": {
