@@ -59,7 +59,7 @@ let
       <currentMemory unit='KiB'>262144</currentMemory>
       <vcpu placement='static'>1</vcpu>
       <os>
-        <type arch='x86_64'>hvm</type>
+        <type arch='x86_64' machine='pc-q35-6.2'>hvm</type>
         <boot dev='hd'/>
       </os>
       <clock offset='utc'/>
