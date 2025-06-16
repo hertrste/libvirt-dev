@@ -79,6 +79,13 @@ let
       </devices>
     </domain>
   '';
+
+  new_disk = ''
+    <disk type='file' device='disk'>
+      <source file='/tmp/disk.img'/>
+      <target dev='vdb' bus='virtio'/>
+    </disk>
+  '';
 in
 {
   virtualisation.libvirtd = {
@@ -86,6 +93,7 @@ in
     sshProxy = false;
     package = pkgs.libvirt.overrideAttrs (old: {
       src = libvirt-src;
+      debug = true;
       doInstallCheck = false;
       doCheck = false;
       patches = [ ./0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch ./0002-substitute-zfs-and-zpool-commands.patch ];
@@ -184,6 +192,8 @@ in
     # pkgs.jq
     pkgs.sshpass
     pkgs.mount
+    pkgs.gdb
+    pkgs.screen
   ];
 
   systemd.tmpfiles.settings =
@@ -220,6 +230,11 @@ in
         "/etc/cirros-qemu.xml" = {
           "C+" = {
             argument = "${pkgs.writeText "cirros.xml" virsh_qemu_xml}";
+          };
+        };
+        "/etc/new_disk.xml" = {
+          "C+" = {
+            argument = "${pkgs.writeText "new_disk.xml" new_disk}";
           };
         };
         "/var/log/libvirt/" = {

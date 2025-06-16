@@ -10,6 +10,12 @@
       #url = "git+ssh://git@gitlab.vpn.cyberus-technology.de/shertrampf/libvirt.git?ref=ch-migrate-v11.4.0&submodules=1";
       flake = false;
     };
+    cloud-hypervisor = {
+      # url = "github:hertrste/cloud-hypervisor?ref=seccomp_http_api";
+      url = "github:phip1611/cloud-hypervisor?ref=network-fd-livemig";
+      flake = false;
+    };
+
   };
 
   outputs =
@@ -19,6 +25,7 @@
       nixpkgs-unstable,
       libvirt-src,
       flake-utils,
+      cloud-hypervisor,
       ...
     }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (
@@ -28,7 +35,8 @@
         pkgs = import nixpkgs { inherit system; overlays = [
           (final: prev: {
             # Live migration is supported since v43 of Cloud Hypervisor
-            cloud-hypervisor = pkgs-unstable.cloud-hypervisor;
+            #cloud-hypervisor = pkgs-unstable.cloud-hypervisor;
+            cloud-hypervisor = prev.callPackage ./chv.nix { src = cloud-hypervisor; };
           })
         ]; };
       in
