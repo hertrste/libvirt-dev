@@ -44,6 +44,12 @@ let
           <model type='virtio'/>
           <driver queues='1'/>
         </interface>
+        <interface type='ethernet'>
+          <mac address='52:54:00:e5:b8:ee'/>
+          <target dev='vnet1'/>
+          <model type='virtio'/>
+          <driver queues='1'/>
+        </interface>
         <serial type='pty'>
           <source path='/dev/pts/2'/>
           <target port='0'/>
@@ -85,6 +91,12 @@ let
       <source file='/tmp/disk.img'/>
       <target dev='vdb' bus='virtio'/>
     </disk>
+  '';
+  new_interface = ''
+    <interface type='ethernet'>
+      <source network='tap1'/>
+      <model type='virtio'/>
+    </interface>
   '';
 in
 {
@@ -133,12 +145,16 @@ in
             Address = "192.168.1.2";
             MACAddress = "52:54:00:e5:b8:ef";
           }
+          {
+            Address = "192.168.1.3";
+            MACAddress = "52:54:00:e5:b8:ee";
+          }
         ];
 
         # DHCP server settings
         dhcpServerConfig = {
           PoolOffset = 2;
-          PoolSize = 1;
+          PoolSize = 10;
           EmitDNS = false;
           # DNS = [
           #   "8.8.8.8"
@@ -156,6 +172,10 @@ in
         matchConfig.Name = "vnet*";
         networkConfig.Bridge = "br0";
       };
+      # "10-vmtap0" = {
+      #   matchConfig.Name = "vmtap*";
+      #   networkConfig.Bridge = "br0";
+      # };
     };
   };
 
@@ -194,6 +214,7 @@ in
     pkgs.mount
     pkgs.gdb
     pkgs.screen
+    pkgs.tunctl
   ];
 
   systemd.tmpfiles.settings =
@@ -235,6 +256,11 @@ in
         "/etc/new_disk.xml" = {
           "C+" = {
             argument = "${pkgs.writeText "new_disk.xml" new_disk}";
+          };
+        };
+        "/etc/new_interface.xml" = {
+          "C+" = {
+            argument = "${pkgs.writeText "new_interface.xml" new_interface}";
           };
         };
         "/var/log/libvirt/" = {

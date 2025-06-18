@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "cloud-hypervisor": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1750171422,
+        "narHash": "sha256-24EuCLFTj8B9GP3FbBdGIOufe0xdOspH9f+nibIFdsk=",
+        "owner": "phip1611",
+        "repo": "cloud-hypervisor",
+        "rev": "0304d87fe80f0cae68c7cadc193480d5529f0596",
+        "type": "github"
+      },
+      "original": {
+        "owner": "phip1611",
+        "ref": "network-fd-livemig",
+        "repo": "cloud-hypervisor",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -20,11 +37,11 @@
     "libvirt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1749825328,
-        "narHash": "sha256-60V7oyBvUUU8J8mvC2tAX3/MXtYGRrFAMRe64NKPojg=",
-        "ref": "refs/heads/gardenlinux-hotplug",
-        "rev": "570c28797ab6a9f2dbd3133d4c7827285820775a",
-        "revCount": 52217,
+        "lastModified": 1750228897,
+        "narHash": "sha256-mp1UE4RrBKwIUfuM3baDh0a5eO9icgym+xMQfV6oPYw=",
+        "ref": "refs/heads/gardenlinux-dev",
+        "rev": "ae1ead79de8ec6468e56f4920cb182ae8a2f27d5",
+        "revCount": 52220,
         "submodules": true,
         "type": "git",
         "url": "file:/home/skober/repos/libvirt"
@@ -37,16 +54,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1742751704,
-        "narHash": "sha256-rBfc+H1dDBUQ2mgVITMGBPI1PGuCznf9rcWX/XIULyE=",
+        "lastModified": 1749857119,
+        "narHash": "sha256-tG5xUn3hFaPpAHYIvr2F88b+ovcIO5k1HqajFy7ZFPM=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "f0946fa5f1fb876a9dc2e1850d9d3a4e3f914092",
+        "rev": "5f4f306bea96741f1588ea4f450b2a2e29f42b98",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
-        "ref": "nixos-24.11",
+        "ref": "nixos-25.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -69,6 +86,7 @@
     },
     "root": {
       "inputs": {
+        "cloud-hypervisor": "cloud-hypervisor",
         "flake-utils": "flake-utils",
         "libvirt-src": "libvirt-src",
         "nixpkgs": "nixpkgs",

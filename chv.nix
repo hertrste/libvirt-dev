@@ -10,18 +10,20 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "cloud-hypervisor";
-  version = "44.0";
+  version = "45.0";
 
   inherit src;
 
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
-      "acpi_tables-0.1.0" = "sha256-a6ojB2XVeH+YzzXRle0agg+ljn0Jsgyaf6TJZAGt8sQ=";
-      "micro_http-0.1.0" = "sha256-yIgcoEfc7eeS1+bijzkifaBxVNHa71Y+Vn79owMaKvM=";
-      "mshv-bindings-0.2.0" = "sha256-NYViItbjt1Q2G4yO3j37naHe9EJ+llkjrNt6w4zoiW8=";
-      "vfio-bindings-0.4.0" = "sha256-mzdYH23CVWm7fvu4+1cFHlPhkUjh7+JlU/ScoXaDNgA=";
-      "vfio_user-0.1.0" = "sha256-LJ84k9pMkSAaWkuaUd+2LnPXnNgrP5LdbPOc1Yjz5xA=";
+      "acpi_tables-0.1.0" = "sha256-79V90qP9yhqo0xqEqwN6fIPKJgLT/ICWKZO1UB56MxU=";
+      "micro_http-0.1.0" = "sha256-CKjWuD9QKSTxhj++nywV6HlHnyex3m42wfNcVbfs4mk=";
+      # "mshv-bindings-0.2.0" = "sha256-NYViItbjt1Q2G4yO3j37naHe9EJ+llkjrNt6w4zoiW8=";
+      "igvm-0.3.4" = "sha256-cis+iLmSg8pnUZhilZ3FAARWjF7uEyjmUvQAFjyKir4=";
+      "vhost-0.12.1" = "sha256-30ckHS9F6lV/WmqeO8iC/pIwrTAYRwwh18qGEwavysk=";
+      "vfio-bindings-0.4.0" = "sha256-A+SOGA3sf7v6uiZxPrqnXCYdYJZ2hxQmRef2ylFbE0M=";
+      "vfio_user-0.1.0" = "sha256-hlK3LO/WBvNP7CqxJSV+aQO1rrtwNfmUz9VMWTk3TCc=";
       "vm-fdt-0.3.0" = "sha256-9PywgSnSL+8gT6lcl9t6w7X4fEINa+db+H1vWS+gDOI=";
     };
   };

@@ -155,12 +155,18 @@ pkgs.nixosTest {
 
       time.sleep(5)
 
-      controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
-      controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --source /tmp/disk.img")
+      # controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      # controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --source /tmp/disk.img")
+
+      # time.sleep(5)
+
+      # controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
+
+      controllerVM.succeed("virsh -c ch:///session attach-device cirros /etc/new_interface.xml")
 
       time.sleep(5)
 
-      controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
+      controllerVM.succeed("virsh -c ch:///session detach-device cirros /etc/new_interface.xml")
 
       ############ CHV Live Migration #######################
 
@@ -177,6 +183,12 @@ pkgs.nixosTest {
       # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
 
       # assert wait_for_ssh(computeVM)
+
+      # time.sleep(5)
+
+      # computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://controllerVM/session --live --verbose")
+
+      # assert wait_for_ssh(controllerVM)
 
       ############ QEMU Live Migration ######################
 
