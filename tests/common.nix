@@ -94,8 +94,10 @@ let
   '';
   new_interface = ''
     <interface type='ethernet'>
-      <source network='tap1'/>
+      <mac address='52:54:00:e5:b8:dd'/>
+      <target dev='tap0'/>
       <model type='virtio'/>
+      <driver queues='1'/>
     </interface>
   '';
 in
@@ -215,6 +217,7 @@ in
     pkgs.gdb
     pkgs.screen
     pkgs.tunctl
+    pkgs.lsof
   ];
 
   systemd.tmpfiles.settings =
