@@ -28,6 +28,17 @@ rustPlatform.buildRustPackage rec {
     };
   };
 
+  patches =
+    let
+      patchSrc = ./patches/cloud-hypervisor;
+    in
+    (lib.pipe patchSrc [
+      builtins.readDir
+      builtins.attrNames
+      # To fully-qualified path.
+      (map (f: "${patchSrc}/${f}"))
+    ]);
+
   cargoHash = "";
 
   separateDebugInfo = true;
