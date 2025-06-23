@@ -33,13 +33,16 @@
       system:
       let
         pkgs-unstable = import nixpkgs-unstable { inherit system; };
-        pkgs = import nixpkgs { inherit system; overlays = [
-          (final: prev: {
-            # Live migration is supported since v43 of Cloud Hypervisor
-            #cloud-hypervisor = pkgs-unstable.cloud-hypervisor;
-            cloud-hypervisor = prev.callPackage ./chv.nix { src = cloud-hypervisor; };
-          })
-        ]; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            (final: prev: {
+              # Live migration is supported since v43 of Cloud Hypervisor
+              #cloud-hypervisor = pkgs-unstable.cloud-hypervisor;
+              cloud-hypervisor = prev.callPackage ./chv.nix { src = cloud-hypervisor; };
+            })
+          ];
+        };
       in
       {
         formatter = pkgs.nixfmt-rfc-style;

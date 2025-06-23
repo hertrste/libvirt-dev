@@ -9,13 +9,13 @@ let
   image_raw = pkgs.runCommand "image_raw" { } ''
     ${pkgs.qemu-utils}/bin/qemu-img convert -O raw ${image} $out
   '';
-    # Network interface definition for later usage:
-    # <interface type='ethernet'>
-    #   <mac address='52:54:00:e5:b8:ef'/>
-    #   <target dev='vnet0'/>
-    #   <model type='virtio'/>
-    #   <driver queues='1'/>
-    # </interface>
+  # Network interface definition for later usage:
+  # <interface type='ethernet'>
+  #   <mac address='52:54:00:e5:b8:ef'/>
+  #   <target dev='vnet0'/>
+  #   <model type='virtio'/>
+  #   <driver queues='1'/>
+  # </interface>
   virsh_ch_xml = ''
       <domain type='kvm' id='21050'>
       <name>cirros</name>
@@ -110,7 +110,10 @@ in
       debug = true;
       doInstallCheck = false;
       doCheck = false;
-      patches = [ ./0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch ./0002-substitute-zfs-and-zpool-commands.patch ];
+      patches = [
+        ./0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch
+        ./0002-substitute-zfs-and-zpool-commands.patch
+      ];
     });
   };
 
