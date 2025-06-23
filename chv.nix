@@ -1,82 +1,64 @@
 {
+  # from flake inputs
+  craneLib,
+  cloud-hypervisor-src,
+  rustToolchain,
+  # from nixpkgs,
   lib,
-  stdenv,
-  rustPlatform,
-  pkg-config,
-  dtc,
   openssl,
-  src,
+  pkg-config,
+  # other
+  cloud-hypervisor-meta,
 }:
+let
+  # Crane lib with proper Rust toolchain
+  craneLib' = craneLib.overrideToolchain rustToolchain;
 
-rustPlatform.buildRustPackage rec {
-  pname = "cloud-hypervisor";
-  version = "45.0";
+  commonArgs = {
+    meta = cloud-hypervisor-meta;
 
-  inherit src;
+    src = craneLib'.cleanCargoSource cloud-hypervisor-src;
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "acpi_tables-0.1.0" = "sha256-79V90qP9yhqo0xqEqwN6fIPKJgLT/ICWKZO1UB56MxU=";
-      "micro_http-0.1.0" = "sha256-CKjWuD9QKSTxhj++nywV6HlHnyex3m42wfNcVbfs4mk=";
-      # "mshv-bindings-0.2.0" = "sha256-NYViItbjt1Q2G4yO3j37naHe9EJ+llkjrNt6w4zoiW8=";
-      "igvm-0.3.4" = "sha256-cis+iLmSg8pnUZhilZ3FAARWjF7uEyjmUvQAFjyKir4=";
-      "vhost-0.12.1" = "sha256-30ckHS9F6lV/WmqeO8iC/pIwrTAYRwwh18qGEwavysk=";
-      "vfio-bindings-0.4.0" = "sha256-A+SOGA3sf7v6uiZxPrqnXCYdYJZ2hxQmRef2ylFbE0M=";
-      "vfio_user-0.1.0" = "sha256-hlK3LO/WBvNP7CqxJSV+aQO1rrtwNfmUz9VMWTk3TCc=";
-      "vm-fdt-0.3.0" = "sha256-9PywgSnSL+8gT6lcl9t6w7X4fEINa+db+H1vWS+gDOI=";
-    };
+    patches =
+      let
+        patchSrc = ./patches/cloud-hypervisor;
+      in
+      (lib.pipe patchSrc [
+        builtins.readDir
+        builtins.attrNames
+        # To fully-qualified path.
+        (map (f: "${patchSrc}/${f}"))
+      ]);
+
+    nativeBuildInputs = [
+      pkg-config
+    ];
+    buildInputs = [
+      openssl
+    ];
+    # Fix build. Reference:
+    # - https://github.com/sfackler/rust-openssl/issues/1430
+    # - https://docs.rs/openssl/latest/openssl/
+    OPENSSL_NO_VENDOR = true;
   };
 
-  patches =
-    let
-      patchSrc = ./patches/cloud-hypervisor;
-    in
-    (lib.pipe patchSrc [
-      builtins.readDir
-      builtins.attrNames
-      # To fully-qualified path.
-      (map (f: "${patchSrc}/${f}"))
-    ]);
+  # Downloaded and compiled dependencies.
+  cargoArtifacts = craneLib'.buildDepsOnly (
+    commonArgs
+    // {
+      pname = "cloud-hypervisor-deps";
+    }
+  );
 
-  cargoHash = "";
-
-  separateDebugInfo = true;
-
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = lib.optional stdenv.hostPlatform.isAarch64 dtc;
-  checkInputs = [ openssl ];
-
-  OPENSSL_NO_VENDOR = true;
-
-  cargoTestFlags = [
-    "--workspace"
-    "--bins"
-    "--lib" # Integration tests require root.
-    "--exclude"
-    "hypervisor" # /dev/kvm
-    "--exclude"
-    "net_util" # /dev/net/tun
-    "--exclude"
-    "vmm" # /dev/kvm
-  ];
-
-  meta = with lib; {
-    homepage = "https://github.com/cloud-hypervisor/cloud-hypervisor";
-    description = "Open source Virtual Machine Monitor (VMM) that runs on top of KVM";
-    changelog = "https://github.com/cloud-hypervisor/cloud-hypervisor/releases/tag/v${version}";
-    license = with licenses; [
-      asl20
-      bsd3
-    ];
-    mainProgram = "cloud-hypervisor";
-    maintainers = with maintainers; [
-      offline
-      qyliss
-    ];
-    platforms = [
-      "aarch64-linux"
-      "x86_64-linux"
-    ];
-  };
-}
+  cargoPackageKvm = craneLib'.buildPackage (
+    commonArgs
+    // {
+      inherit cargoArtifacts;
+      pname = "cloud-hypervisor";
+      # Don't execute tests here. We want this in a dedicated step.
+      doCheck = false;
+      cargoExtraArgs = "--features kvm";
+    }
+  );
+in
+cargoPackageKvm
