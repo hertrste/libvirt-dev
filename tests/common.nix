@@ -111,8 +111,8 @@ in
       doInstallCheck = false;
       doCheck = false;
       patches = [
-        ./0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch
-        ./0002-substitute-zfs-and-zpool-commands.patch
+        ../patches/libvirt/0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch
+        ../patches/libvirt/0002-substitute-zfs-and-zpool-commands.patch
       ];
     });
   };
