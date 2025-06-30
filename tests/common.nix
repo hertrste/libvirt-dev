@@ -114,6 +114,27 @@ in
         ../patches/libvirt/0001-meson-patch-in-an-install-prefix-for-building-on-nix.patch
         ../patches/libvirt/0002-substitute-zfs-and-zpool-commands.patch
       ];
+      # Reduce files needed to compile. We cut the build-time in half.
+      mesonFlags = old.mesonFlags ++ [
+        # Disabling tests: 1500 -> 1200
+        "-Dtests=disabled"
+        "-Dexpensive_tests=disabled"
+        # Disabling docs: 1200 -> 800
+        "-Ddocs=disabled"
+        # Disabling unneeded backends: 800 -> 685
+        "-Ddriver_ch=enabled"
+        "-Ddriver_qemu=enabled"
+        "-Ddriver_bhyve=disabled"
+        "-Ddriver_esx=disabled"
+        "-Ddriver_hyperv=disabled"
+        "-Ddriver_libxl=disabled"
+        "-Ddriver_lxc=disabled"
+        "-Ddriver_openvz=disabled"
+        "-Ddriver_secrets=disabled"
+        "-Ddriver_vbox=disabled"
+        "-Ddriver_vmware=disabled"
+        "-Ddriver_vz=disabled"
+      ];
     });
   };
 
