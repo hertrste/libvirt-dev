@@ -141,6 +141,8 @@ in
   systemd.services.virtstoraged.path = [ pkgs.mount ];
 
   systemd.services.virtchd.wantedBy = [ "multi-user.target" ];
+  systemd.services.virtchd.path = [ pkgs.openssh ];
+  systemd.sockets.virtproxyd-tcp.wantedBy = [ "sockets.target" ];
   systemd.sockets.virtstoraged.wantedBy = [ "sockets.target" ];
 
   systemd.network = {
