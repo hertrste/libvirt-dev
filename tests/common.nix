@@ -5,9 +5,68 @@ let
     url = "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img";
     hash = "sha256-B+RKc+VMlNmIAoUVQDwe12IFXgG4OnZ+3zwrOH94zgA=";
   };
+  image_ubuntu = pkgs.fetchurl {
+    url = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img";
+    hash = "sha256-8WUtKdSX+3xiNDNwXJ/KZSXRMRsRKUoPSV7tVcdjnR8=";
+  };
+
+  pty = pkgs.writers.writePython3Bin "pty" { libraries = [ ]; } (builtins.readFile ../read_pty.py);
+
+  read_pty = pkgs.writers.writePython3Bin "read_pty.py" { libraries = [ ]; } ''
+  import os
+  import sys
+  import tty
+
+
+  def set_terminal_mode(fd):
+      try:
+          # Raw mode - no input processing, character-by-character
+          tty.setraw(fd)
+          print("Set terminal to RAW mode")
+          return True
+
+      except Exception as e:
+          print(f"Failed to set terminal mode 'raw': {e}")
+          return False
+
+
+  def readpty(path):
+      import select
+
+      try:
+          with open(path, "w") as f:
+              # set_terminal_mode(f)
+              # Writing a null seems to trigger new output while not being
+              # recognized as a newline or similar by the sender.
+              f.write("\0")
+              f.flush()
+
+          epoll = select.epoll()
+
+          with open(path, "rb") as f:
+              os.set_blocking(f.fileno(), False)
+              epoll.register(f.fileno(), select.EPOLLIN)
+              poll_list = epoll.poll(1)
+              data = bytearray()
+              for _ in poll_list:
+                  data += f.read()
+              epoll.unregister(f.fileno())
+              epoll.close()
+              print(f"Got data bytes: {len(data)}")
+              return data.decode("utf-8", errors="ignore")
+      except Exception as exc:
+          print(exc)
+
+
+  if __name__ == "__main__":
+      print(readpty(sys.argv[1]))
+  '';
 
   image_raw = pkgs.runCommand "image_raw" { } ''
     ${pkgs.qemu-utils}/bin/qemu-img convert -O raw ${image} $out
+  '';
+  ubuntu_raw = pkgs.runCommand "image_raw" { } ''
+    ${pkgs.qemu-utils}/bin/qemu-img convert -O raw ${image_ubuntu} $out
   '';
   # Network interface definition for later usage:
   # <interface type='ethernet'>
@@ -44,9 +103,38 @@ let
           <model type='virtio'/>
           <driver queues='1'/>
         </interface>
+        <serial type='pty'>
+          <source path='/dev/pts/2'/>
+          <target port='0'/>
+        </serial>
+      </devices>
+    </domain>
+  '';
+  virsh_ch_xml_ubuntu = ''
+      <domain type='kvm' id='21050'>
+      <name>cirros</name>
+      <uuid>4eb6319a-4302-4407-9a56-802fc7e6a422</uuid>
+      <memory unit='KiB'>262144</memory>
+      <currentMemory unit='KiB'>262144</currentMemory>
+      <vcpu placement='static'>1</vcpu>
+      <os>
+        <type arch='x86_64'>hvm</type>
+        <kernel>/etc/hypervisor-fw</kernel>
+        <boot dev='hd'/>
+      </os>
+      <clock offset='utc'/>
+      <on_poweroff>destroy</on_poweroff>
+      <on_reboot>restart</on_reboot>
+      <on_crash>destroy</on_crash>
+      <devices>
+        <emulator>cloud-hypervisor</emulator>
+        <disk type='file' device='disk'>
+          <source file='/var/lib/libvirt/storage-pools/nfs-share/ubuntu.img'/>
+          <target dev='vda' bus='virtio'/>
+        </disk>
         <interface type='ethernet'>
-          <mac address='52:54:00:e5:b8:ee'/>
-          <target dev='vnet1'/>
+          <mac address='52:54:00:e5:b8:ef'/>
+          <target dev='vnet0'/>
           <model type='virtio'/>
           <driver queues='1'/>
         </interface>
@@ -57,6 +145,7 @@ let
       </devices>
     </domain>
   '';
+
   virsh_qemu_xml = ''
       <domain type='kvm' id='21050'>
       <name>cirros</name>
@@ -137,6 +226,8 @@ in
       ];
     });
   };
+
+  virtualisation.diskSize = 4096;
 
   systemd.services.virtstoraged.path = [ pkgs.mount ];
 
@@ -236,14 +327,15 @@ in
     pkgs.cloud-hypervisor
     pkgs.qemu_kvm
     pkgs.bridge-utils
-    # pkgs.screen
-    # pkgs.jq
+    pkgs.screen
+    pkgs.jq
     pkgs.sshpass
     pkgs.mount
     pkgs.gdb
     pkgs.screen
     pkgs.tunctl
     pkgs.lsof
+    pkgs.python3
   ];
 
   systemd.tmpfiles.settings =
@@ -262,9 +354,24 @@ in
             argument = "${chv-firmware}";
           };
         };
+        "/etc/read_pty.py" = {
+          "L+" = {
+            argument = "${read_pty}";
+          };
+        };
+        "/etc/pty.py" = {
+          "L+" = {
+            argument = "${pty}";
+          };
+        };
         "/etc/cirros.img" = {
           "C+" = {
             argument = "${image_raw}";
+          };
+        };
+        "/etc/ubuntu.img" = {
+          "C+" = {
+            argument = "${image_ubuntu}";
           };
         };
         "/etc/cirros.qcow2" = {
@@ -275,6 +382,11 @@ in
         "/etc/cirros-chv.xml" = {
           "C+" = {
             argument = "${pkgs.writeText "cirros.xml" virsh_ch_xml}";
+          };
+        };
+        "/etc/cirros-chv-ubuntu.xml" = {
+          "C+" = {
+            argument = "${pkgs.writeText "ubuntu.xml" virsh_ch_xml_ubuntu}";
           };
         };
         "/etc/cirros-qemu.xml" = {

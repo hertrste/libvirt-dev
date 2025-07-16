@@ -115,7 +115,9 @@ pkgs.nixosTest {
       controllerVM.wait_for_unit("multi-user.target")
 
       controllerVM.succeed("cp /etc/cirros.img /nfs-root/")
+      # controllerVM.succeed("cp /etc/ubuntu.img /nfs-root/")
       controllerVM.succeed("chmod 0666 /nfs-root/cirros.img")
+      # controllerVM.succeed("chmod 0666 /nfs-root/ubuntu.img")
 
       controllerVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
       controllerVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
@@ -143,44 +145,61 @@ pkgs.nixosTest {
 
       ############ CHV Hotplug test  #######################
 
-      controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
-
-      computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
-
-      # Using define + start creates a "persistant" domain rather than a transient
-      controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
-      controllerVM.succeed("virsh -c ch:///session start cirros")
-
-      time.sleep(5)
-
-      # controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
-      # controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --source /tmp/disk.img")
-
-      # time.sleep(5)
-
-      # controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
-
-      controllerVM.succeed("virsh -c ch:///session attach-device cirros /etc/new_interface.xml")
-
-      time.sleep(5)
-
-      controllerVM.succeed("virsh -c ch:///session detach-device cirros /etc/new_interface.xml")
-
-      ############ CHV Live Migration #######################
-
       # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
       # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
-      # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
+      # # Using define + start creates a "persistant" domain rather than a transient
+      # controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
+      # controllerVM.succeed("virsh -c ch:///session start cirros")
+
+      # time.sleep(5)
+
+      # controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      # controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
+
+
+      # controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
+
+      # controllerVM.succeed("virsh -c ch:///session attach-device --persistent cirros /etc/new_interface.xml")
 
       # assert wait_for_ssh(controllerVM)
+      # time.sleep(5)
 
-      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose")
+      # controllerVM.succeed("virsh -c ch:///session managedsave cirros")
+
+      # controllerVM.succeed("virsh -c ch:///session detach-device cirros /etc/new_interface.xml")
+
+      ############ CHV Live Migration #######################
+
+      controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
+      controllerVM.succeed("virsh -c ch:///session start cirros")
+
+      # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
+
+      assert wait_for_ssh(controllerVM)
+
+      controllerVM.succeed("virsh -c ch:///session attach-device cirros /etc/new_interface.xml")
+      controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      computeVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
+
+      # for i in range(5):
+      #   controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://192.168.100.2/session --live --p2p --persistent --undefinesource")
+      #   time.sleep(5)
+      #   computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://controllerVM/session --live --p2p --persistent --undefinesource")
+      #   time.sleep(5)
+
+      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://computeVM/session --live --p2p")
+      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose --p2p")
 
       # assert wait_for_ssh(computeVM)
 
