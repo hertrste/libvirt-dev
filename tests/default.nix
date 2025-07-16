@@ -5,6 +5,8 @@
 pkgs.nixosTest {
   name = "Libvirt test";
 
+  extraPythonPackages = p: [ p.pytest ];
+
   nodes.controllerVM =
     { ... }:
     {
@@ -101,6 +103,67 @@ pkgs.nixosTest {
     { ... }:
     ''
       import time
+      import unittest
+
+      class LibvirtTests(unittest.TestCase):
+        @classmethod
+        def setUpClass(cls):
+          start_all()
+          controllerVM.wait_for_unit("multi-user.target")
+          controllerVM.succeed("cp /etc/cirros.img /nfs-root/")
+          controllerVM.succeed("chmod 0666 /nfs-root/cirros.img")
+
+          controllerVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
+          controllerVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
+
+          computeVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
+          computeVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
+
+          controllerVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+          computeVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+
+          controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
+          computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
+
+          controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+          controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+          computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+          computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+        def setUp(self):
+            print("setup")
+
+        def tearDown(self):
+            print("teardown")
+
+        def test_hotplug(self):
+            # Using define + start creates a "persistant" domain rather than a transient
+            controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
+            controllerVM.succeed("virsh -c ch:///session start cirros")
+
+            assert wait_for_ssh(controllerVM)
+
+            num_devices_old = number_of_devices(controllerVM)
+
+            controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+            controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
+
+            controllerVM.succeed("virsh -c ch:///session attach-device --persistent cirros /etc/new_interface.xml")
+
+            num_devices_new = number_of_devices(controllerVM)
+
+            assert num_devices_new == num_devices_old + 2
+
+            controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
+            controllerVM.succeed("virsh -c ch:///session detach-device cirros /etc/new_interface.xml")
+
+            assert number_of_devices(controllerVM) == num_devices_old
+
+      def suite():
+          suite = unittest.TestSuite()
+          suite.addTest(LibvirtTests('test_hotplug'))
+          return suite
 
       def wait_for_ssh(machine):
         for i in range(500):
@@ -111,27 +174,79 @@ pkgs.nixosTest {
           time.sleep(1)
         return False
 
-      start_all()
-      controllerVM.wait_for_unit("multi-user.target")
+      def ssh(machine, cmd, user="cirros", password="gocubsgo", ip="192.168.1.2"):
+        status, out = machine.execute(f"sshpass -p {password} ssh -o StrictHostKeyChecking=no {user}@{ip} {cmd}")
+        return status, out
 
-      controllerVM.succeed("cp /etc/cirros.img /nfs-root/")
-      # controllerVM.succeed("cp /etc/ubuntu.img /nfs-root/")
-      controllerVM.succeed("chmod 0666 /nfs-root/cirros.img")
-      # controllerVM.succeed("chmod 0666 /nfs-root/ubuntu.img")
+      def number_of_devices(machine):
+        status, out = ssh(machine, "lspci | wc -l")
+        assert status == 0
+        return int(out)
 
-      controllerVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
-      controllerVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
+      runner = unittest.TextTestRunner()
+      runner.run(suite())
+      # start_all()
+      # controllerVM.wait_for_unit("multi-user.target")
 
-      computeVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
-      computeVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
+      # controllerVM.succeed("cp /etc/cirros.img /nfs-root/")
+      # # controllerVM.succeed("cp /etc/ubuntu.img /nfs-root/")
+      # controllerVM.succeed("chmod 0666 /nfs-root/cirros.img")
+      # # controllerVM.succeed("chmod 0666 /nfs-root/ubuntu.img")
 
-      controllerVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
-      computeVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+      # controllerVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
+      # controllerVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
 
-      controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
-      computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
+      # computeVM.succeed("virt-admin -c virtchd:///system daemon-log-outputs \"2:journald 1:file:/var/log/libvirt/libvirtd.log\"")
+      # computeVM.succeed("virt-admin -c virtchd:///system daemon-timeout --timeout 0")
 
-      ############ CHV Logging test  #######################
+      # controllerVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+      # computeVM.succeed("mkdir -p /var/lib/libvirt/storage-pools/nfs-share")
+
+      # controllerVM.succeed("ssh -o StrictHostKeyChecking=no computeVM echo")
+      # computeVM.succeed("ssh -o StrictHostKeyChecking=no controllerVM echo")
+
+      # ############ CHV Logging test  #######################
+
+      # # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # # controllerVM.succeed("echo \"log_level = 1\" > /var/libvirt/ch/ch.conf")
+
+      # # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
+
+      # ############ CHV Hotplug test  #######################
+
+      # # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
+      # # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+
+      # # # Using define + start creates a "persistant" domain rather than a transient
+      # # controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
+      # # controllerVM.succeed("virsh -c ch:///session start cirros")
+
+      # # time.sleep(5)
+
+      # # controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      # # controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
+
+
+      # # controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
+
+      # # controllerVM.succeed("virsh -c ch:///session attach-device --persistent cirros /etc/new_interface.xml")
+
+      # # assert wait_for_ssh(controllerVM)
+      # # time.sleep(5)
+
+      # # controllerVM.succeed("virsh -c ch:///session managedsave cirros")
+
+      # # controllerVM.succeed("virsh -c ch:///session detach-device cirros /etc/new_interface.xml")
+
+      # ############ CHV Live Migration #######################
 
       # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
@@ -139,91 +254,50 @@ pkgs.nixosTest {
       # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
       # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
 
-      # controllerVM.succeed("echo \"log_level = 1\" > /var/libvirt/ch/ch.conf")
-
-      # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
-
-      ############ CHV Hotplug test  #######################
-
-      # controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      # controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
-
-      # computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      # computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
-
-      # # Using define + start creates a "persistant" domain rather than a transient
       # controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
       # controllerVM.succeed("virsh -c ch:///session start cirros")
 
-      # time.sleep(5)
+      # # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
 
+      # assert wait_for_ssh(controllerVM)
+
+      # controllerVM.succeed("virsh -c ch:///session attach-device cirros /etc/new_interface.xml")
       # controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
+      # computeVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
       # controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
 
+      # # for i in range(5):
+      # #   controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://192.168.100.2/session --live --p2p --persistent --undefinesource")
+      # #   time.sleep(5)
+      # #   computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://controllerVM/session --live --p2p --persistent --undefinesource")
+      # #   time.sleep(5)
 
-      # controllerVM.succeed("virsh -c ch:///session detach-disk --domain cirros --target vdb")
+      # # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://computeVM/session --live --p2p")
+      # # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose --p2p")
 
-      # controllerVM.succeed("virsh -c ch:///session attach-device --persistent cirros /etc/new_interface.xml")
+      # # assert wait_for_ssh(computeVM)
 
-      # assert wait_for_ssh(controllerVM)
-      # time.sleep(5)
+      # # time.sleep(5)
 
-      # controllerVM.succeed("virsh -c ch:///session managedsave cirros")
+      # # computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://controllerVM/session --live --verbose")
 
-      # controllerVM.succeed("virsh -c ch:///session detach-device cirros /etc/new_interface.xml")
+      # # assert wait_for_ssh(controllerVM)
 
-      ############ CHV Live Migration #######################
+      # ############ QEMU Live Migration ######################
 
-      controllerVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"localhost\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      controllerVM.succeed("virsh -c ch:///session pool-start nfs-share")
+      # # controllerVM.succeed("virsh -c \"qemu+tcp://controllerVM/system\" create /etc/cirros-qemu.xml")
 
-      computeVM.succeed("virsh -c ch:///session pool-define-as --name \"nfs-share\" --type netfs --source-host \"controllerVM\" --source-path \"nfs-root\" --source-format \"nfs\" --target \"/var/lib/libvirt/storage-pools/nfs-share\"")
-      computeVM.succeed("virsh -c ch:///session pool-start nfs-share")
+      # # controllerVM.succeed("virsh migrate --domain cirros --desturi qemu+tcp://computeVM/system --live --verbose")
 
-      controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
-      controllerVM.succeed("virsh -c ch:///session start cirros")
-
-      # controllerVM.succeed("virsh -c ch:///session create /etc/cirros-chv.xml")
-
-      assert wait_for_ssh(controllerVM)
-
-      controllerVM.succeed("virsh -c ch:///session attach-device cirros /etc/new_interface.xml")
-      controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
-      computeVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
-      controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
-
-      # for i in range(5):
-      #   controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://192.168.100.2/session --live --p2p --persistent --undefinesource")
-      #   time.sleep(5)
-      #   computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://controllerVM/session --live --p2p --persistent --undefinesource")
-      #   time.sleep(5)
-
-      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://computeVM/session --live --p2p")
-      # controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://computeVM/session --live --verbose --p2p")
-
-      # assert wait_for_ssh(computeVM)
-
-      # time.sleep(5)
-
-      # computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+ssh://controllerVM/session --live --verbose")
-
-      # assert wait_for_ssh(controllerVM)
-
-      ############ QEMU Live Migration ######################
-
-      # controllerVM.succeed("virsh -c \"qemu+tcp://controllerVM/system\" create /etc/cirros-qemu.xml")
-
-      # controllerVM.succeed("virsh migrate --domain cirros --desturi qemu+tcp://computeVM/system --live --verbose")
-
-      # computeVM.succeed("virsh dumpxml cirros")
+      # # computeVM.succeed("virsh dumpxml cirros")
 
 
-      ############ non-Libvirt CHV Live Migration #######################
-      # computeVM.succeed("screen -m -d cloud-hypervisor -vv --log-file /tmp/log --api-socket /tmp/api")
-      # computeVM.succeed("screen -m -d ch-remote --api-socket=/tmp/api receive-migration tcp:0.0.0.0:41337")
+      # ############ non-Libvirt CHV Live Migration #######################
+      # # computeVM.succeed("screen -m -d cloud-hypervisor -vv --log-file /tmp/log --api-socket /tmp/api")
+      # # computeVM.succeed("screen -m -d ch-remote --api-socket=/tmp/api receive-migration tcp:0.0.0.0:41337")
 
-      # controllerVM.succeed("screen -m -d cloud-hypervisor -vv --log-file /tmp/log --net \"tap=tap0,mac=18:ab:a5:f1:f7:56,ip=,mask=\" --kernel /etc/hypervisor-fw --disk path=/etc/cirros.img --cpus boot=1 --memory size=256M --serial file=/tmp/serial --api-socket=/tmp/api")
-      # controllerVM.succeed("sleep 20")
-      # controllerVM.succeed("ch-remote --api-socket=/tmp/api send-migration  tcp:computeVM:41337")
+      # # controllerVM.succeed("screen -m -d cloud-hypervisor -vv --log-file /tmp/log --net \"tap=tap0,mac=18:ab:a5:f1:f7:56,ip=,mask=\" --kernel /etc/hypervisor-fw --disk path=/etc/cirros.img --cpus boot=1 --memory size=256M --serial file=/tmp/serial --api-socket=/tmp/api")
+      # # controllerVM.succeed("sleep 20")
+      # # controllerVM.succeed("ch-remote --api-socket=/tmp/api send-migration  tcp:computeVM:41337")
     '';
 }
