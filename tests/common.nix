@@ -62,6 +62,63 @@ let
       print(readpty(sys.argv[1]))
   '';
 
+  vm_json = ''
+    {
+      "serial": {
+        "mode": "Pty"
+      },
+      "console": {
+        "mode": "Off"
+      },
+      "cpus": {
+        "boot_vcpus": 2,
+        "max_vcpus": 2
+      },
+      "memory": {
+        "zones": [
+          {
+            "id": "zone0",
+            "size": 1073741824
+          },
+          {
+            "id": "zone1",
+            "size": 1073741824
+          }
+        ],
+        "size": 0
+      },
+      "numa": [
+        {
+          "guest_numa_id": 0,
+          "memory_zones": [
+            "zone0"
+          ],
+          "cpus": [
+            0
+          ]
+        },
+        {
+          "guest_numa_id": 1,
+          "memory_zones": [
+            "zone1"
+          ],
+          "cpus": [
+            1
+          ]
+        }
+      ],
+      "payload": {
+        "kernel": "/etc/CLOUDHV.fd"
+      },
+      "disks": [
+        {
+          "id": "virtio-disk0",
+          "path": "/var/lib/libvirt/storage-pools/nfs-share/cirros.img"
+        }
+      ]
+    }
+    '';
+
   image_raw = pkgs.runCommand "image_raw" { } ''
     ${pkgs.qemu-utils}/bin/qemu-img convert -O raw ${image} $out
   '';
@@ -81,10 +138,29 @@ let
       <uuid>4eb6319a-4302-4407-9a56-802fc7e6a422</uuid>
       <memory unit='KiB'>262144</memory>
       <currentMemory unit='KiB'>262144</currentMemory>
-      <vcpu placement='static'>1</vcpu>
+      <vcpu placement='static'>2</vcpu>
+      <cputune>
+        <vcpupin vcpu='0' cpuset='0-1'/>
+        <vcpupin vcpu='1' cpuset='2-3'/>
+        <emulatorpin cpuset='0-1'/>
+      </cputune>
+      <cpu>
+        <numa>
+          <!-- Defines the guest NUMA topology -->
+          <cell id='0' cpus='0' memory='1024' unit='MiB'/>
+          <cell id='1' cpus='1,' memory='1024' unit='MiB'/>
+        </numa>
+      </cpu>
+      <numatune>
+        <memory mode='strict' nodeset='0'/>
+          <!-- Maps memory from guest to host NUMA topology. nodeset refers to host NUMA node, cellid to guest NUMA -->
+        <memnode cellid='0' mode='strict' nodeset='0'/>
+        <memnode cellid='1' mode='strict' nodeset='0'/>
+      </numatune>
       <os>
         <type arch='x86_64'>hvm</type>
-        <kernel>/etc/hypervisor-fw</kernel>
+        <kernel>/etc/CLOUDHV.fd</kernel>
+        <!-- <kernel>/etc/hypervisor-fw</kernel> -->
         <boot dev='hd'/>
       </os>
       <clock offset='utc'/>
@@ -302,6 +378,7 @@ in
     listen_tls = 0
     listen_tcp = 1
     auth_tcp = "none"
+    uri_default = "ch:///session"
   '';
 
   networking = {
@@ -336,6 +413,9 @@ in
     pkgs.tunctl
     pkgs.lsof
     pkgs.python3
+    pkgs.numatop
+    pkgs.numactl
+    pkgs.htop
   ];
 
   systemd.tmpfiles.settings =
@@ -346,12 +426,23 @@ in
         # url = "https://github.com/cloud-hypervisor/edk2/releases/download/ch-a54f262b09/CLOUDHV.fd";
         # hash = "sha256-BiTAbF0Hy47+OIBokM5wdsQcCQLy/NWyN28QcDPjIis=";
       };
+      chv-ovmf = pkgs.OVMF-cloud-hypervisor.fd;
     in
     {
       "10-chv" = {
         "/etc/hypervisor-fw" = {
           "L+" = {
             argument = "${chv-firmware}";
+          };
+        };
+        "/etc/vm.json" = {
+          "L+" = {
+            argument = "${pkgs.writeText "vm.json" vm_json}";
+          };
+        };
+        "/etc/CLOUDHV.fd" = {
+          "C+" = {
+            argument = "${chv-ovmf}/FV/CLOUDHV.fd";
           };
         };
         "/etc/read_pty.py" = {

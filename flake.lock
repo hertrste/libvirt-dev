@@ -53,11 +53,11 @@
     "libvirt-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1752490216,
-        "narHash": "sha256-9rvGNtP7eodXnqCWqE/yBvPNpcBGoaQb5Ac4JnPVsCo=",
+        "lastModified": 1753367483,
+        "narHash": "sha256-ZDCO9l93lyqRhViZ1TZ/0OsosJOfi1KwZzHhxJq33oE=",
         "ref": "refs/heads/gardenlinux",
-        "rev": "dd925781891b62a0fef01cb78d49bddd870f0a4b",
-        "revCount": 52292,
+        "rev": "1faff3ef4854f5a0cf204535c7ed500f799056c9",
+        "revCount": 52296,
         "submodules": true,
         "type": "git",
         "url": "file:/home/skober/repos/libvirt"

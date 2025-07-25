@@ -16,7 +16,7 @@ pkgs.nixosTest {
       ];
 
       virtualisation = {
-        cores = 2;
+        cores = 4;
         memorySize = 2048;
         interfaces = {
           eth1 = {
@@ -65,7 +65,7 @@ pkgs.nixosTest {
       '';
 
       virtualisation = {
-        cores = 2;
+        cores = 4;
         memorySize = 2048;
         interfaces = {
           eth1 = {
@@ -137,6 +137,13 @@ pkgs.nixosTest {
         def tearDown(self):
             print("teardown")
 
+            # Destroy and undefine all running and persistent domains
+            controllerVM.execute("virsh -c ch:///session list --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session destroy \"$domain\"; done")
+            controllerVM.execute("virsh -c ch:///session list --all --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session undefine \"$domain\"; done")
+            computeVM.execute("virsh -c ch:///session list --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session destroy \"$domain\"; done")
+            computeVM.execute("virsh -c ch:///session list --all --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session undefine \"$domain\"; done")
+            print("fin teardown")
+
         def test_hotplug(self):
             # Using define + start creates a "persistant" domain rather than a transient
             controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
@@ -160,22 +167,47 @@ pkgs.nixosTest {
 
             assert number_of_devices(controllerVM) == num_devices_old
 
+        def test_libvirt_restart(self):
+            """
+            We test the restart of the libvirt daemon. A restart requires that
+            we correctly re-attach to persistent domain, which can currently be
+            running or shutdown.
+            Currently, shutdown domains are detected as running which leads to
+            problems when trying to interact with them.
+            """
+            # Using define + start creates a "persistant" domain rather than a transient
+            controllerVM.succeed("virsh -c ch:///session define /etc/cirros-chv.xml")
+            controllerVM.succeed("virsh -c ch:///session start cirros")
+
+            assert wait_for_ssh(controllerVM)
+
+            controllerVM.succeed("virsh -c ch:///session shutdown cirros")
+            controllerVM.succeed("systemctl restart virtchd")
+
+            controllerVM.succeed("virsh -c ch:///session list --all | grep 'shut off'")
+
+            controllerVM.succeed("virsh -c ch:///session start cirros")
+            controllerVM.succeed("systemctl restart virtchd")
+            controllerVM.succeed("virsh -c ch:///session list | grep 'running'")
+
+
       def suite():
           suite = unittest.TestSuite()
           suite.addTest(LibvirtTests('test_hotplug'))
+          suite.addTest(LibvirtTests('test_libvirt_restart'))
           return suite
 
-      def wait_for_ssh(machine):
+      def wait_for_ssh(machine, user="cirros", password="gocubsgo", ip="192.168.1.2"):
         for i in range(500):
           print(f"Wait for ssh {i}/240")
-          status, _ = machine.execute("sshpass -p gocubsgo ssh -o StrictHostKeyChecking=no cirros@192.168.1.2 echo hello")
+          status, _ = ssh(machine, "echo hello")
           if status == 0:
             return True
           time.sleep(1)
         return False
 
       def ssh(machine, cmd, user="cirros", password="gocubsgo", ip="192.168.1.2"):
-        status, out = machine.execute(f"sshpass -p {password} ssh -o StrictHostKeyChecking=no {user}@{ip} {cmd}")
+        status, out = machine.execute(f"sshpass -p {password} ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {user}@{ip} {cmd}")
         return status, out
 
       def number_of_devices(machine):
