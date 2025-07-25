@@ -41,7 +41,14 @@ class LibvirtTests(unittest.TestCase):
       controllerVM.execute("virsh -c ch:///session list --all --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session undefine \"$domain\"; done")
       computeVM.execute("virsh -c ch:///session list --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session destroy \"$domain\"; done")
       computeVM.execute("virsh -c ch:///session list --all --name | while read domain; do [[ -n \"$domain\" ]] && virsh -c ch:///session undefine \"$domain\"; done")
-      print("fin teardown")
+
+      # After undefining and destroying all domains, there should not be any .xml files left
+      # Any files left here, indicate that we do not clean up properly
+      controllerVM.fail("find /run/libvirt/ch -name *.xml | grep .")
+      controllerVM.fail("find /var/lib/libvirt/ch -name *.xml | grep .")
+      computeVM.fail("find /run/libvirt/ch -name *.xml | grep .")
+      computeVM.fail("find /var/lib/libvirt/ch -name *.xml | grep .")
+
 
   def test_hotplug(self):
       # Using define + start creates a "persistant" domain rather than a transient
