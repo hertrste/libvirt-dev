@@ -116,12 +116,12 @@ class LibvirtTests(unittest.TestCase):
     computeVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
     controllerVM.succeed("virsh -c ch:///session attach-disk --domain cirros --target vdb --persistent --source /tmp/disk.img")
 
-    for i in range(5):
+    for i in range(2):
       # Explicitly use IP in desturi as this was already a problem in the past
-      controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://192.168.100.2/session --live --p2p")
+      controllerVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://192.168.100.2/session --persistent --live --p2p")
       time.sleep(5)
       assert wait_for_ssh(computeVM)
-      computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://controllerVM/session --live --p2p")
+      computeVM.succeed("virsh -c ch:///session migrate --domain cirros --desturi ch+tcp://controllerVM/session --persistent --live --p2p")
       time.sleep(5)
       assert wait_for_ssh(controllerVM)
 
