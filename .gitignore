@@ -1,5 +1,6 @@
 .direnv
 .nixos-test-history
+/.vscode
 /result*
 
 # gitlint
