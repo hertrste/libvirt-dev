@@ -1,3 +1,4 @@
+import random
 import time
 import unittest
 
@@ -86,27 +87,26 @@ class LibvirtTests(unittest.TestCase):
         of roughly 1.6GiB.
         """
 
+        controllerVM.succeed("qemu-img create -f raw /tmp/disk.img 100M")
         controllerVM.succeed("virsh define /etc/domain-chv.xml")
-        controllerVM.succeed("virsh start testvm")
 
-        assert wait_for_ssh(controllerVM)
+        while True:
+            controllerVM.succeed("virsh start testvm")
 
-        status, _ = ssh(controllerVM, "screen -dmS stress stress -m 4 --vm-bytes 400M")
-        assert status == 0
-
-        run_loops = 500
-        for i in range(run_loops):
-            print(f"Run {i + 1}/{run_loops}")
-
-            controllerVM.succeed(
-                "virsh migrate --domain testvm --desturi ch+tcp://computeVM/session --persistent --live --p2p --parallel --parallel-connections 4"
-            )
-            assert wait_for_ssh(computeVM)
-
-            computeVM.succeed(
-                "virsh migrate --domain testvm --desturi ch+tcp://controllerVM/session --persistent --live --p2p --parallel --parallel-connections 4"
-            )
             assert wait_for_ssh(controllerVM)
+
+            run_loops = 200
+            for i in range(run_loops):
+                print(f"Run {i + 1}/{run_loops}")
+
+                controllerVM.succeed(
+                    "virsh attach-disk --domain testvm --target vdb --persistent --source /tmp/disk.img"
+                )
+                time.sleep(float(random.randint(0, 100)) / 10.0)
+                controllerVM.succeed("virsh detach-disk --domain testvm --persistent --target vdb")
+
+                assert wait_for_ssh(controllerVM)
+            controllerVM.succeed("virsh destroy testvm")
 
 
 def suite():
