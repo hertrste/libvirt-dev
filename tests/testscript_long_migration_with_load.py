@@ -102,7 +102,7 @@ class LibvirtTests(unittest.TestCase):
                 controllerVM.succeed(
                     "virsh attach-disk --domain testvm --target vdb --persistent --source /tmp/disk.img"
                 )
-                time.sleep(float(random.randint(0, 100)) / 10.0)
+                time.sleep(0.1)
                 controllerVM.succeed("virsh detach-disk --domain testvm --persistent --target vdb")
 
                 assert wait_for_ssh(controllerVM)
