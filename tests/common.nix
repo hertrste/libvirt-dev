@@ -387,6 +387,19 @@ in
     };
 
     networks = {
+      "10-tap" = {
+        enable = true;
+        matchConfig.Name = "vtap1";
+        networkConfig = {
+          Description = "Hotplug device";
+          DHCPServer = "no";
+        };
+
+        # Please keep in sync with documentation in networks.md!
+        address = [
+          "192.168.2.1/24" # hotplugged interface
+        ];
+      };
       # Bridge interface configuration
       "10-br0" = {
         enable = true;
@@ -399,7 +412,6 @@ in
         # Please keep in sync with documentation in networks.md!
         address = [
           "192.168.1.1/24" # default VM network device
-          "192.168.2.1/24" # hotplugged interface
         ];
       };
       "10-br4" = {
