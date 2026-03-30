@@ -1508,7 +1508,6 @@ class LibvirtTests(LibvirtTestsBase):  # type: ignore
         print(controllerVM.succeed("cloud-hypervisor --version"))
         print(computeVM.succeed("cloud-hypervisor --version"))
 
-
 def suite():
     # Test cases involving live migration sorted in alphabetical order.
     testcases = [
